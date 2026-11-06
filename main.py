@@ -17,6 +17,7 @@ if BASE_DIR not in sys.path:
 from keyboard_engine import KeyboardEngine
 from ui_widget import TaskbarStripPanel
 from tray_manager import TrayManager
+from updater import UpdateChecker, CURRENT_VERSION
 
 kernel32 = ctypes.windll.kernel32
 user32 = ctypes.windll.user32
@@ -58,6 +59,11 @@ def main():
         if tray_holder[0]:
             tray_holder[0].update_icon(mode)
 
+    def on_language_change(new_lang):
+        if tray_holder[0]:
+            tray_holder[0].update_menu()
+            tray_holder[0].update_icon()
+
     def cleanup_and_exit():
         try:
             engine.stop()
@@ -72,7 +78,8 @@ def main():
         root=root,
         engine=engine,
         on_mode_changed=on_mode_change,
-        on_exit=cleanup_and_exit
+        on_exit=cleanup_and_exit,
+        on_language_changed=on_language_change
     )
 
     # Hotkey (F8 yoki Ctrl+Shift+U) orqali almashtirish
@@ -92,6 +99,26 @@ def main():
 
     # Klaviatura drayverini ishga tushirish
     engine.start()
+
+    # =========================================================================
+    # FONDA AVTOMATIK YANGILANISHLARNI TEKSHIRISH
+    # =========================================================================
+    updater = UpdateChecker(CURRENT_VERSION)
+
+    def trigger_update_check():
+        def on_found(info):
+            def _apply():
+                panel.set_update_required(info)
+                if tray_holder[0]:
+                    tray_holder[0].update_icon()
+            root.after(0, _apply)
+
+        updater.check_in_background(on_update_found=on_found)
+        # Har 30 daqiqada yangilanishlarni avtomatik qayta tekshirib turadi
+        root.after(30 * 60 * 1000, trigger_update_check)
+
+    # Dastur yoqilgandan 3 soniya o'tgach birinchi tekshiruv
+    root.after(3000, trigger_update_check)
 
     try:
         root.mainloop()

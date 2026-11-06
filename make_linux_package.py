@@ -162,7 +162,7 @@ StartupNotify=true
         tar.addfile(ti, io.BytesIO(icon_data))
 
         # /opt/namdpi-alifbo/ files
-        py_files = ["main.py", "keyboard_engine.py", "ui_widget.py", "tray_manager.py", "transliterator.py", "utils.py", "README.md"]
+        py_files = ["main.py", "keyboard_engine.py", "ui_widget.py", "tray_manager.py", "transliterator.py", "utils.py", "i18n.py", "updater.py", "README.md"]
         for fn in py_files:
             fp = os.path.join(BASE_DIR, fn)
             if os.path.exists(fp):
@@ -301,7 +301,7 @@ echo "NamDPI alifbo to'liq o'chirildi."
         tar.addfile(ti, io.BytesIO(uninstall_sh.encode('utf-8')))
 
         # src files
-        py_files = ["main.py", "keyboard_engine.py", "ui_widget.py", "tray_manager.py", "transliterator.py", "utils.py", "README.md"]
+        py_files = ["main.py", "keyboard_engine.py", "ui_widget.py", "tray_manager.py", "transliterator.py", "utils.py", "i18n.py", "updater.py", "README.md"]
         for fn in py_files:
             fp = os.path.join(BASE_DIR, fn)
             if os.path.exists(fp):

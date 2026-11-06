@@ -27,9 +27,16 @@
    - Ekranning oʻrtasida xalal bermaydi, pastki qatorda (Taskbar ustida, soat va til indikatori yonida) ixcham va chiroyli turadi.
    - Ixchamlashtirish imkoniyati: mini-kapsula rejimiga oʻtkazish mumkin.
    - Windows 11 Fluent Design talablariga mos zamonaviy quyuq (dark) interfeys.
-6. **Dinamik Tizim Tepsisi (System Tray):**
-   - Pastdagi Taskbar burchagida qaysi alifbo faolligiga qarab **`Ö`**, **`Ў`**, **`Oʻ`**, **`OFF`** belgilari aniq koʻrinib turadi.
-7. **Tezkor klavishlar (Hotkeys):**
+6. **Koʻp tilli interfeys (UZ / RU / EN):**
+   - Dastur toʻliq 3 ta tilda ishlaydi: **Oʻzbekcha**, **Русский**, **English**.
+   - Paneldagi `[🌐 UZ]`, Sozlamalar oynasi yoki Tray menyusi orqali bir bosishda tilni almashtirish mumkin.
+7. **GitHub orqali Avtomatik Yangilanish Tizimi (Auto-Updater):**
+   - Dastur fonda GitHub releases orqali yangi versiyalarni tekshirib boradi.
+   - Yangi versiya chiqqanda ekranning burchagida majburiy yangilanish oynasi paydo boʻladi va yangilanmaguncha matn oʻgirish toʻxtatiladi.
+   - Bir tugma bilan avtomatik yangi versiyani yuklab olib oʻrnatadi.
+8. **Dinamik Tizim Tepsisi (System Tray):**
+   - Pastdagi Taskbar burchagida qaysi alifbo faolligiga qarab **`Ö`**, **`Ў`**, **`Oʻ`**, **`OFF`** (va yangilanish kerak boʻlsa **`!`**) belgilari aniq koʻrinib turadi.
+9. **Tezkor klavishlar (Hotkeys):**
    - **`F8`** yoki **`Ctrl + Shift + U`** — sichqonchaga tegmasdan turib alifbo rejimini klaviaturaning oʻzidan zumda almashtirish.
 
 ---

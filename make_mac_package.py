@@ -171,7 +171,7 @@ exit 0
         add_file("NamDPI alifbo.app/Contents/Resources/app_icon.icns", icns_data, mode=0o644)
 
         # 4. Source files
-        py_files = ["main.py", "keyboard_engine.py", "ui_widget.py", "tray_manager.py", "transliterator.py", "utils.py", "README.md"]
+        py_files = ["main.py", "keyboard_engine.py", "ui_widget.py", "tray_manager.py", "transliterator.py", "utils.py", "i18n.py", "updater.py", "README.md"]
         for fn in py_files:
             fp = os.path.join(BASE_DIR, fn)
             if os.path.exists(fp):

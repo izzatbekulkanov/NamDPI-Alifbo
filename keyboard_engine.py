@@ -115,6 +115,8 @@ class KeyboardEngine:
         self.replace_queue = queue.Queue()
         self._is_running = False
         self._worker_thread = None
+        self.is_locked = False
+        self.lock_reason = ""
 
         # Windows hook parametrlari
         if OS_SYSTEM == "Windows":
@@ -134,6 +136,18 @@ class KeyboardEngine:
 
     def get_mode(self) -> str:
         return self.mode
+
+    def lock(self, reason: str = "update_required"):
+        """Dasturni bloklash (masalan yangilanish talab etilganda)."""
+        self.is_locked = True
+        self.lock_reason = reason
+        self.buffer.clear()
+
+    def unlock(self):
+        """Dasturni blokdan chiqarish."""
+        self.is_locked = False
+        self.lock_reason = ""
+        self.buffer.clear()
 
     def _worker(self):
         """Orqa fonda almashtirishni xavfsiz bajaruvchi oqim."""
@@ -239,6 +253,9 @@ class KeyboardEngine:
             if info.dwExtraInfo == EXTRA_MAGIC:
                 return user32.CallNextHookEx(None, nCode, wParam, lParam)
 
+            if self.is_locked:
+                return user32.CallNextHookEx(None, nCode, wParam, lParam)
+
             if wParam in (WM_KEYDOWN, WM_SYSKEYDOWN):
                 vk = info.vkCode
                 scan = info.scanCode
@@ -342,7 +359,7 @@ class KeyboardEngine:
             self._is_replacing_posix = False
 
     def _on_press_posix(self, key, *args):
-        if self._is_replacing_posix:
+        if self._is_replacing_posix or self.is_locked:
             return
 
         from pynput.keyboard import Key

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 NamDPI alifbo - System Tray menejeri (Yuqori aniqlikdagi dinamik belgilar)
+Ko'p tillilik va Yangilanish tekshiruvi integratsiyasi
 Namangan davlat pedagogika instituti
 Raqamli ta'lim texnologiyalari markazi (NamDPI RTTM)
 """
@@ -11,7 +12,9 @@ import pystray
 from pystray import MenuItem as item
 import os
 
-def create_mode_icon_image(mode):
+from i18n import t, get_language, set_language
+
+def create_mode_icon_image(mode, is_locked=False):
     """
     128x128 o'lchamda chizib, 32x32 ga antialiasing (LANCZOS) bilan
     kichraytiradi. Natijada Windows taskbarida belgi tiniq va professional chiqadi.
@@ -20,6 +23,8 @@ def create_mode_icon_image(mode):
     img = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
+    border_color = (239, 68, 68, 255) if is_locked else (6, 182, 212, 230)
+
     # Gradient/Fon
     r = 28
     pad = 4
@@ -27,7 +32,7 @@ def create_mode_icon_image(mode):
         [pad, pad, canvas_size - pad - 1, canvas_size - pad - 1],
         radius=r,
         fill=(15, 23, 42, 255),      # Slate 900
-        outline=(6, 182, 212, 230),  # Cyan
+        outline=border_color,
         width=5
     )
 
@@ -36,7 +41,9 @@ def create_mode_icon_image(mode):
     font_names = ["segoeuib.ttf", "segoeui.ttf", "arialbd.ttf", "arial.ttf"]
     for fn in font_names:
         try:
-            if mode == 'off':
+            if is_locked:
+                font = ImageFont.truetype(fn, 56)
+            elif mode == 'off':
                 font = ImageFont.truetype(fn, 44)
             elif mode == 'lotin':
                 font = ImageFont.truetype(fn, 56)
@@ -49,7 +56,10 @@ def create_mode_icon_image(mode):
     if not font:
         font = ImageFont.load_default()
 
-    if mode == 'yangi':
+    if is_locked:
+        color = (239, 68, 68, 255)   # Red
+        text = "!"
+    elif mode == 'yangi':
         color = (6, 182, 212, 255)   # Cyan
         text = "Ö"
     elif mode == 'kril':
@@ -89,36 +99,57 @@ class TrayManager:
         def is_mode(m):
             return lambda itm: self.panel.mode_var.get() == m
 
+        def set_lang_cb(l):
+            return lambda: self.panel.change_language(l)
+
+        def is_lang(l):
+            return lambda itm: get_language() == l
+
         return pystray.Menu(
-            item("NamDPI alifbo", None, enabled=False),
-            item("Panelni koʻrsatish / yashirish", lambda: self.toggle_panel(), default=True),
+            item(t("app_title"), None, enabled=False),
+            item(t("tray_toggle"), lambda: self.toggle_panel(), default=True),
             pystray.Menu.SEPARATOR,
-            item("Rejim: Yangi Lotin (Ö, Ğ, Ş, Ç)", set_mode_cb("yangi"), checked=is_mode("yangi")),
-            item("Rejim: Ўзбек Кирилл", set_mode_cb("kril"), checked=is_mode("kril")),
-            item("Rejim: Amaldagi Lotin", set_mode_cb("lotin"), checked=is_mode("lotin")),
-            item("Rejim: Oʻchirilgan (Bypass)", set_mode_cb("off"), checked=is_mode("off")),
+            item(t("tray_mode_yangi"), set_mode_cb("yangi"), checked=is_mode("yangi")),
+            item(t("tray_mode_kril"), set_mode_cb("kril"), checked=is_mode("kril")),
+            item(t("tray_mode_lotin"), set_mode_cb("lotin"), checked=is_mode("lotin")),
+            item(t("tray_mode_off"), set_mode_cb("off"), checked=is_mode("off")),
             pystray.Menu.SEPARATOR,
-            item("Sozlamalar va Dastur haqida", lambda: self.panel.show_about_dialog()),
-            item("Dasturdan chiqish", lambda: self.exit_app())
+            item(t("tray_language"), pystray.Menu(
+                item("Oʻzbekcha", set_lang_cb("uz"), checked=is_lang("uz")),
+                item("Русский", set_lang_cb("ru"), checked=is_lang("ru")),
+                item("English", set_lang_cb("en"), checked=is_lang("en"))
+            )),
+            item(f"🔄 {t('tray_check_update')}", lambda: self.panel.check_for_updates_manual()),
+            pystray.Menu.SEPARATOR,
+            item(f"⚙ {t('tray_settings')}", lambda: self.panel.show_about_dialog()),
+            item(f"🚪 {t('tray_exit')}", lambda: self.exit_app())
         )
 
     def set_mode(self, mode):
         self.panel.select_mode(mode)
         self.update_icon(mode)
 
-    def update_icon(self, mode):
+    def update_menu(self):
+        """Til yoki sozlamalar o'zgarganda menyuni qayta yangilash."""
         if self.icon:
             try:
-                new_img = create_mode_icon_image(mode)
+                self.icon.menu = self.create_menu()
+            except Exception as e:
+                print("Tray menu update error:", e)
+
+    def update_icon(self, mode=None):
+        if self.icon:
+            try:
+                cur_mode = mode or self.panel.mode_var.get()
+                is_locked = getattr(self.panel, "is_locked", False)
+                new_img = create_mode_icon_image(cur_mode, is_locked=is_locked)
                 self.icon.icon = new_img
-                # Tooltip update
-                mode_names = {
-                    "yangi": "Yangi Lotin (Ö, Ğ, Ş, Ç)",
-                    "kril": "Ўзбек Кирилл",
-                    "lotin": "Amaldagi Lotin",
-                    "off": "Oʻchirilgan (Faol emas)"
-                }
-                self.icon.title = f"NamDPI alifbo - {mode_names.get(mode, mode)}"
+
+                mode_title = t(f"mode_{cur_mode}")
+                if is_locked:
+                    self.icon.title = f"NamDPI alifbo - {t('locked_badge')}"
+                else:
+                    self.icon.title = f"NamDPI alifbo - {mode_title}"
             except Exception as e:
                 print("Tray update error:", e)
 
