@@ -17,7 +17,7 @@ import subprocess
 import urllib.request
 import urllib.error
 
-CURRENT_VERSION = "2.0.0"
+CURRENT_VERSION = "2.0.1"
 REPO_OWNER = "izzatbekulkanov"
 REPO_NAME = "NamDPI-Alifbo"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -46,16 +46,18 @@ def get_github_token():
         if val:
             return val.strip()
 
-    # 2. Git credential manager
+    # 2. Git credential manager (qora oyna chiqarmaslik uchun CREATE_NO_WINDOW bayrog'i bilan)
     try:
+        creationflags = subprocess.CREATE_NO_WINDOW if OS_SYSTEM == "Windows" else 0
         proc = subprocess.Popen(
             ["git", "credential", "fill"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            creationflags=creationflags
         )
-        out, _ = proc.communicate(input="protocol=https\nhost=github.com\n", timeout=3)
+        out, _ = proc.communicate(input="protocol=https\nhost=github.com\n", timeout=2)
         for line in out.splitlines():
             if line.startswith("password="):
                 pwd = line.split("=", 1)[1].strip()
@@ -214,10 +216,14 @@ class UpdateChecker:
         threading.Thread(target=_download_worker, daemon=True).start()
 
     def launch_installer(self, installer_path):
-        """Yuklab olingan o'rnatuvchini ishga tushirish."""
+        """Yuklab olingan o'rnatuvchini qora oyna (console) chiqarmasdan professional ishga tushirish."""
         if OS_SYSTEM == "Windows":
-            # Windows Inno Setup installer
-            subprocess.Popen([installer_path], shell=True)
+            try:
+                # Windows Shell orqali qora konsol oynasisiz toza ishga tushirish
+                os.startfile(installer_path)
+            except Exception:
+                creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
+                subprocess.Popen([installer_path], creationflags=creationflags)
         elif OS_SYSTEM == "Darwin":
             subprocess.Popen(["open", installer_path])
         else: # Linux

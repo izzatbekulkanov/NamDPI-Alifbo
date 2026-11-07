@@ -13,7 +13,6 @@ import os
 import sys
 import ctypes
 from ctypes import wintypes
-import webbrowser
 import platform
 
 from i18n import t, set_language, get_language, LANGUAGES
@@ -211,44 +210,27 @@ class UpdateCornerDialog(tk.Toplevel):
 
         self.btn_download = tk.Button(
             self.actions_frame,
-            text=t("update_download_btn"),
+            text=f"📥  {t('update_download_btn')}",
             command=self.start_download,
             bg="#059669", # Emerald
             fg="#FFFFFF",
+            activebackground="#10B981",
+            activeforeground="#FFFFFF",
             font=("Segoe UI", 9, "bold"),
             relief="flat",
-            padx=12,
-            pady=4,
+            pady=6,
             cursor="hand2"
         )
-        self.btn_download.pack(side="left", padx=(0, 6))
-
-        self.btn_browser = tk.Button(
-            self.actions_frame,
-            text=t("update_browser_btn"),
-            command=self.open_browser,
-            bg="#334155",
-            fg="#F8FAFC",
-            font=("Segoe UI", 8),
-            relief="flat",
-            padx=8,
-            pady=4,
-            cursor="hand2"
-        )
-        self.btn_browser.pack(side="left")
+        self.btn_download.pack(fill="x")
 
     def on_lang_click(self, lang_code):
         self.parent_panel.change_language(lang_code)
         self._build_ui()
 
-    def open_browser(self):
-        url = self.update_info.html_url or "https://github.com/izzatbekulkanov/NamDPI-Alifbo/releases/latest"
-        webbrowser.open(url)
-
     def start_download(self):
         asset = self.update_info.get_platform_asset()
         if not asset:
-            self.open_browser()
+            self.status_lbl.configure(text=t("update_error", err="Fayl topilmadi"), fg="#EF4444")
             return
 
         self.btn_download.configure(state="disabled", bg="#475569")
