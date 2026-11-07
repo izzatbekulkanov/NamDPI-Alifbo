@@ -18,7 +18,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 APP_NAME = "NamDPI alifbo"
 PKG_NAME = "namdpi-alifbo"
-VERSION = "2.0.1"
+VERSION = "2.0.2"
 
 # 1. 256x256 PNG icon yaratish
 def generate_png_icon(out_path):

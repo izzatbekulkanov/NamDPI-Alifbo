@@ -45,9 +45,9 @@ def build_mac_package():
     <key>CFBundleIdentifier</key>
     <string>uz.nspi.namdpi.alifbo</string>
     <key>CFBundleVersion</key>
-    <string>2.0.1</string>
+    <string>2.0.2</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.1</string>
+    <string>2.0.2</string>
     <key>CFBundleExecutable</key>
     <string>namdpi_alifbo</string>
     <key>CFBundleIconFile</key>
