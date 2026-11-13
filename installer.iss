@@ -3,7 +3,7 @@
 ; Raqamli ta'lim texnologiyalari markazi (NamDPI RTTM)
 
 #define MyAppName "NamDPI alifbo"
-#define MyAppVersion "2.0.2"
+#define MyAppVersion "2.0.3"
 #define MyAppPublisher "Namangan davlat pedagogika instituti Raqamli ta'lim texnologiyalari markazi"
 #define MyAppURL "https://nspi.uz"
 #define MyAppExeName "NamDPI_Alifbo.exe"
@@ -19,9 +19,9 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\NamDPI alifbo
 DefaultGroupName=NamDPI alifbo
 AllowNoIcons=yes
-OutputDir=I:\translate\installer_output
+OutputDir=installer_output
 OutputBaseFilename=NamDPI_Alifbo_Setup
-SetupIconFile=I:\translate\app_icon.ico
+SetupIconFile=app_icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -44,8 +44,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startup"; Description: "{cm:AutoStart}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "I:\translate\dist\NamDPI_Alifbo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "I:\translate\app_icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\NamDPI_Alifbo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "app_icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\app_icon.ico"

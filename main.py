@@ -114,8 +114,8 @@ def main():
             root.after(0, _apply)
 
         updater.check_in_background(on_update_found=on_found)
-        # Har 60 soniyada yangilanishlarni avtomatik qayta tekshirib turadi (Telegram kabi)
-        root.after(60 * 1000, trigger_update_check)
+        # Har 1 soatda yangilanishlarni avtomatik qayta tekshirib turadi
+        root.after(3600 * 1000, trigger_update_check)
 
     # Dastur yoqilgandan 2 soniya o'tgach darhol birinchi tekshiruv
     root.after(2000, trigger_update_check)

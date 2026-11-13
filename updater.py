@@ -17,7 +17,7 @@ import subprocess
 import urllib.request
 import urllib.error
 
-CURRENT_VERSION = "2.0.2"
+CURRENT_VERSION = "2.0.3"
 REPO_OWNER = "izzatbekulkanov"
 REPO_NAME = "NamDPI-Alifbo"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
