@@ -3,7 +3,7 @@ import subprocess
 import os
 import sys
 
-BASE_DIR = r"I:\translate"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIR)
 
 cmd = [

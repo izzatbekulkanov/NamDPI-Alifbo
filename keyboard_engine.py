@@ -160,17 +160,25 @@ class KeyboardEngine:
             if item is None:
                 break
 
-            backspace_count, replacement_text = item
-            if OS_SYSTEM == "Windows":
-                self._execute_replacement_win(backspace_count, replacement_text)
+            post_vk = None
+            with_shift = False
+            if len(item) == 4:
+                backspace_count, replacement_text, post_vk, with_shift = item
+            elif len(item) == 3:
+                backspace_count, replacement_text, post_vk = item
             else:
-                self._execute_replacement_posix(backspace_count, replacement_text)
+                backspace_count, replacement_text = item
+
+            if OS_SYSTEM == "Windows":
+                self._execute_replacement_win(backspace_count, replacement_text, post_vk, with_shift)
+            else:
+                self._execute_replacement_posix(backspace_count, replacement_text, post_vk, with_shift)
             self.replace_queue.task_done()
 
     # =========================================================================
     # WINDOWS NATIVE IMPLEMENTATION
     # =========================================================================
-    def _execute_replacement_win(self, backspaces_count, text):
+    def _execute_replacement_win(self, backspaces_count, text, post_vk=None, with_shift=False):
         """Windows: SendInput orqali o'chirish va yangi matnni kiritish."""
         # 1. Backspaces
         bs_inputs = []
@@ -212,6 +220,37 @@ class KeyboardEngine:
         if txt_inputs:
             arr_txt = (INPUT * len(txt_inputs))(*txt_inputs)
             user32.SendInput(len(txt_inputs), arr_txt, ctypes.sizeof(INPUT))
+
+        # 3. Post VK (masalan VK_RETURN - haqiqiy Enter tugmasi)
+        if post_vk:
+            time.sleep(0.005)
+            vk_inputs = []
+            if with_shift:
+                d_s = INPUT(type=INPUT_KEYBOARD)
+                d_s.ki.wVk = VK_SHIFT
+                d_s.ki.dwExtraInfo = EXTRA_MAGIC
+                vk_inputs.append(d_s)
+
+            d_k = INPUT(type=INPUT_KEYBOARD)
+            d_k.ki.wVk = post_vk
+            d_k.ki.dwExtraInfo = EXTRA_MAGIC
+            vk_inputs.append(d_k)
+
+            u_k = INPUT(type=INPUT_KEYBOARD)
+            u_k.ki.wVk = post_vk
+            u_k.ki.dwFlags = KEYEVENTF_KEYUP
+            u_k.ki.dwExtraInfo = EXTRA_MAGIC
+            vk_inputs.append(u_k)
+
+            if with_shift:
+                u_s = INPUT(type=INPUT_KEYBOARD)
+                u_s.ki.wVk = VK_SHIFT
+                u_s.ki.dwFlags = KEYEVENTF_KEYUP
+                u_s.ki.dwExtraInfo = EXTRA_MAGIC
+                vk_inputs.append(u_s)
+
+            arr_vk = (INPUT * len(vk_inputs))(*vk_inputs)
+            user32.SendInput(len(vk_inputs), arr_vk, ctypes.sizeof(INPUT))
 
     def _get_char_from_vk_win(self, vk, scan_code):
         shift = bool(user32.GetKeyState(VK_SHIFT) & 0x8000)
@@ -284,14 +323,28 @@ class KeyboardEngine:
                         self.buffer.pop()
                     return user32.CallNextHookEx(None, nCode, wParam, lParam)
 
-                # Probel yoki Enter
-                if vk in (VK_SPACE, VK_RETURN):
+                # Probel (Space)
+                if vk == VK_SPACE:
                     if self.mode != 'off' and self.buffer:
                         raw_word = "".join(self.buffer)
                         converted = convert_word(raw_word, self.mode)
                         if converted != raw_word:
-                            delimiter = " " if vk == VK_SPACE else "\n"
-                            self.replace_queue.put((len(self.buffer) + 1, converted + delimiter))
+                            self.replace_queue.put((len(self.buffer) + 1, converted + " "))
+                    self.buffer.clear()
+                    return user32.CallNextHookEx(None, nCode, wParam, lParam)
+
+                # Enter (VK_RETURN)
+                if vk == VK_RETURN:
+                    if self.mode != 'off' and self.buffer:
+                        raw_word = "".join(self.buffer)
+                        converted = convert_word(raw_word, self.mode)
+                        if converted != raw_word:
+                            # Enterni bloklaymiz (return 1), aks holda Telegram/Chat dasturi
+                            # so'z o'girilishidan oldin eski so'zni yuborib yuboradi!
+                            # Eski so'zni o'chirib, o'girilganini yozib, so'ng haqiqiy Enter tugmasi yuboriladi.
+                            self.replace_queue.put((len(self.buffer), converted, VK_RETURN, shift_down))
+                            self.buffer.clear()
+                            return 1  # Intercept and block physical Enter!
                     self.buffer.clear()
                     return user32.CallNextHookEx(None, nCode, wParam, lParam)
 
@@ -336,7 +389,7 @@ class KeyboardEngine:
     # =========================================================================
     # macOS & LINUX (POSIX) IMPLEMENTATION
     # =========================================================================
-    def _execute_replacement_posix(self, backspaces_count, text):
+    def _execute_replacement_posix(self, backspaces_count, text, post_vk=None, with_shift=False):
         """macOS va Linux: pynput controller orqali almashtirish."""
         if not self._posix_controller:
             return
@@ -355,6 +408,17 @@ class KeyboardEngine:
 
             # 2. Yangi matn
             self._posix_controller.type(text)
+
+            # 3. Enter (agar post_vk berilgan bo'lsa)
+            if post_vk:
+                time.sleep(0.005)
+                if with_shift:
+                    with self._posix_controller.pressed(Key.shift):
+                        self._posix_controller.press(Key.enter)
+                        self._posix_controller.release(Key.enter)
+                else:
+                    self._posix_controller.press(Key.enter)
+                    self._posix_controller.release(Key.enter)
         finally:
             self._is_replacing_posix = False
 

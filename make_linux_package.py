@@ -12,7 +12,7 @@ import time
 import tarfile
 from PIL import Image
 
-BASE_DIR = r"I:\translate"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "installer_output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
