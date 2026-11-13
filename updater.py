@@ -46,22 +46,41 @@ def get_github_token():
         if val:
             return val.strip()
 
-    # 2. Git credential manager (qora oyna chiqarmaslik uchun CREATE_NO_WINDOW bayrog'i bilan)
+    creationflags = subprocess.CREATE_NO_WINDOW if OS_SYSTEM == "Windows" else 0
+
+    # 2. GitHub CLI (gh auth token) - hech qanday dialog chiqarmaydi
     try:
-        creationflags = subprocess.CREATE_NO_WINDOW if OS_SYSTEM == "Windows" else 0
+        gh_proc = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            timeout=1,
+            creationflags=creationflags
+        )
+        if gh_proc.returncode == 0 and gh_proc.stdout.strip():
+            tok = gh_proc.stdout.strip()
+            if tok.startswith(("gho_", "ghp_", "github_pat_")):
+                return tok
+    except Exception:
+        pass
+
+    # 3. Git credential manager (GCM_INTERACTIVE=never orqali oynani qat'iyan taqiqlaymiz)
+    try:
+        custom_env = dict(os.environ, GCM_INTERACTIVE="never", GIT_TERMINAL_PROMPT="0")
         proc = subprocess.Popen(
             ["git", "credential", "fill"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            env=custom_env,
             creationflags=creationflags
         )
         out, _ = proc.communicate(input="protocol=https\nhost=github.com\n", timeout=2)
         for line in out.splitlines():
             if line.startswith("password="):
                 pwd = line.split("=", 1)[1].strip()
-                if pwd.startswith("gho_") or pwd.startswith("ghp_") or pwd.startswith("github_pat_"):
+                if pwd.startswith(("gho_", "ghp_", "github_pat_")):
                     return pwd
     except Exception:
         pass
