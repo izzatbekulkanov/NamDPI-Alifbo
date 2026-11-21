@@ -2,7 +2,7 @@
 """
 O'zbek alifbosi transliterator moduli.
 Namangan davlat pedagogika instituti
-Raqamli ta'lim texnologiyalari markazi (NDPI RTTM)
+Raqamli ta'lim texnologiyalari markazi (NamDPI RTTM)
 """
 
 import re
@@ -18,22 +18,22 @@ def is_upper_first(word: str) -> bool:
     return len(word) > 0 and word[0].isupper()
 
 def is_all_upper(word: str) -> bool:
-    return len(word) > 1 and word.isupper()
+    letters = [ch for ch in word if ch.isalpha()]
+    return len(letters) > 1 and all(ch.isupper() for ch in letters)
 
 def latin_to_cyrillic(text: str) -> str:
-    """Lotin yozuvidan O'zbek Kirill yozuviga o'giradi."""
+    """Lotin yoki Yangi Lotin yozuvidan O'zbek Kirill yozuviga o'giradi."""
     if not text:
         return text
 
-    # Maxsus holatlar (s'h -> сҳ)
+    # Maxsus holatlar: Is'hoq / s'h -> сҳ
     res = text
-    # s'h, sʻh -> сҳ
     for apo in APOSTROPHES:
-        res = re.sub(f's{apo}h', 'сҳ', res, flags=re.IGNORECASE)
-        res = re.sub(f'S{apo}h', 'Сҳ', res)
-        res = re.sub(f'S{apo}H', 'СҲ', res)
+        res = res.replace(f"S{apo}H", 'СҲ')
+        res = res.replace(f"S{apo}h", 'Сҳ')
+        res = res.replace(f"s{apo}h", 'сҳ')
 
-    # Qo'sh harflar va maxsus birikmalar (katta/kichik harflar inobatga olingan)
+    # Qo'sh harflar va maxsus birikmalar
     compound_rules = [
         # Yangi harflar (ö, ğ, ş, ç)
         ('ö', 'ў'), ('Ö', 'Ў'),
@@ -41,7 +41,7 @@ def latin_to_cyrillic(text: str) -> str:
         ('ş', 'ш'), ('Ş', 'Ш'),
         ('ç', 'ч'), ('Ç', 'Ч'),
         
-        # Eski harf birikmalari (o', g', sh, ch, yo, yu, ya, ye, ts)
+        # Standart harf birikmalari
         ('sh', 'ш'), ('Sh', 'Ш'), ('SH', 'Ш'),
         ('ch', 'ч'), ('Ch', 'Ч'), ('CH', 'Ч'),
         ('yo', 'ё'), ('Yo', 'Ё'), ('YO', 'Ё'),
@@ -51,17 +51,12 @@ def latin_to_cyrillic(text: str) -> str:
         ('ts', 'ц'), ('Ts', 'Ц'), ('TS', 'Ц'),
     ]
 
-    # oʻ, gʻ variantlari
     for apo in APOSTROPHES:
         compound_rules.extend([
             (f'o{apo}', 'ў'), (f'O{apo}', 'Ў'),
             (f'g{apo}', 'ғ'), (f'G{apo}', 'Ғ'),
         ])
 
-    # Harflar bosqichma-bosqich almashtirish
-    # So'z boshidagi 'e' / 'E' va unlilardan keyingi 'e' -> 'э'/'Э'
-    # Boshqa o'rinlardagi 'e' -> 'е'
-    # Buni so'zlar bo'yicha yoki belgi bo'yicha aniqlash:
     words = re.split(r'(\s+|[^\wʻʼ\'`‘’]+)', res)
     converted_words = []
 
@@ -96,31 +91,24 @@ def latin_to_cyrillic(text: str) -> str:
             converted_words.append(w)
             continue
         
-        # Word processing
         cur = w
-        # 1. compound replacements first
         for pat, rep in compound_rules:
             cur = cur.replace(pat, rep)
 
-        # 2. handle 'e' / 'E'
-        # Check positions of 'e' / 'E'
         chars = list(cur)
         for i, ch in enumerate(chars):
             if ch in ('e', 'E'):
                 is_cap = (ch == 'E')
                 if i == 0:
-                    # So'z boshida -> 'э' / 'Э'
                     chars[i] = 'Э' if is_cap else 'э'
                 else:
                     prev_char = chars[i-1]
-                    # Agar oldingi belgi unli bo'lsa -> 'э' / 'Э'
                     if prev_char.lower() in ('a', 'o', 'u', 'i', 'ў', 'ö', 'а', 'о', 'у', 'и', 'э'):
                         chars[i] = 'Э' if is_cap else 'э'
                     else:
                         chars[i] = 'Е' if is_cap else 'е'
         cur = "".join(chars)
 
-        # 3. single letter replacements
         res_chars = []
         for ch in cur:
             if ch in single_map:
@@ -131,8 +119,6 @@ def latin_to_cyrillic(text: str) -> str:
                 res_chars.append(ch)
         
         w_converted = "".join(res_chars)
-
-        # Butun so'z katta harflarda yozilgan bo'lsa
         if is_all_upper(w):
             w_converted = w_converted.upper()
 
@@ -146,23 +132,21 @@ def latin_to_new_latin(text: str) -> str:
     if not text:
         return text
 
-    # Agar matn Kirill bo'lsa, avval Kirilldan yangi lotinga o'girish qoidalari
-    # Agar matn Lotin bo'lsa, sh -> ş, ch -> ç, o' -> ö, g' -> ğ
+    all_upper = is_all_upper(text)
     res = text
 
+    # Maxsus holat: Is'hoq / Исҳоқ -> s'h ni saqlash (Ishoq/Işoq bo'lib ketmasligi uchun)
+    res = res.replace('СҲ', "S'H").replace('Сҳ', "S'h").replace('сҳ', "s'h")
+
     # 1. Standart Lotin birikmalarini Yangi Lotinga almashtirish:
-    # sh -> ş
-    res = re.sub(r'SH\b', 'Ş', res)
     res = res.replace('SH', 'Ş').replace('Sh', 'Ş').replace('sh', 'ş')
-    # ch -> ç
     res = res.replace('CH', 'Ç').replace('Ch', 'Ç').replace('ch', 'ç')
     
-    # oʻ, gʻ
     for apo in APOSTROPHES:
         res = res.replace(f'o{apo}', 'ö').replace(f'O{apo}', 'Ö')
         res = res.replace(f'g{apo}', 'ğ').replace(f'G{apo}', 'Ğ')
 
-    # 2. Agar matnda Kirill harflari bo'lsa:
+    # 2. Kirill harflarini Yangi Lotinga almashtirish:
     cyr_to_new = {
         'ш': 'ş', 'Ш': 'Ş',
         'ч': 'ç', 'Ч': 'Ç',
@@ -172,10 +156,12 @@ def latin_to_new_latin(text: str) -> str:
         'ҳ': 'h', 'Ҳ': 'H',
         'х': 'x', 'Х': 'X',
         'ж': 'j', 'Ж': 'J',
-        'ц': 'ts', 'Ц': 'Ts',
-        'ё': 'yo', 'Ё': 'Yo',
-        'ю': 'yu', 'Ю': 'Yu',
-        'я': 'ya', 'Я': 'Ya',
+        'ц': 'ts', 'Ц': 'TS' if all_upper else 'Ts',
+        'ё': 'yo', 'Ё': 'YO' if all_upper else 'Yo',
+        'ю': 'yu', 'Ю': 'YU' if all_upper else 'Yu',
+        'я': 'ya', 'Я': 'YA' if all_upper else 'Ya',
+        'щ': 'ş', 'Щ': 'Ş',
+        'ы': 'i', 'Ы': 'I',
         'э': 'e', 'Э': 'E',
         'а': 'a', 'А': 'A',
         'б': 'b', 'Б': 'B',
@@ -200,42 +186,67 @@ def latin_to_new_latin(text: str) -> str:
         'ь': '', 'Ь': '',
     }
 
-    # Kirill 'е' holati: so'z boshida yoki unlidan keyin 'ye', undoshdan keyin 'e'
     chars = list(res)
     for i, ch in enumerate(chars):
         if ch in ('е', 'Е'):
             is_cap = (ch == 'Е')
-            if i == 0 or chars[i-1] in ' \t\n\r"\'([{-':
-                chars[i] = 'Ye' if is_cap else 'ye'
-            elif chars[i-1].lower() in VOWELS_CYRILLIC:
-                chars[i] = 'Ye' if is_cap else 'ye'
+            if is_cap and all_upper:
+                ye_val, e_val = 'YE', 'E'
+            elif is_cap:
+                ye_val, e_val = 'Ye', 'E'
             else:
-                chars[i] = 'E' if is_cap else 'e'
+                ye_val, e_val = 'ye', 'e'
+
+            if i == 0 or chars[i-1] in ' \t\n\r"\'([{-':
+                chars[i] = ye_val
+            elif chars[i-1].lower() in VOWELS_CYRILLIC:
+                chars[i] = ye_val
+            else:
+                chars[i] = e_val
         elif ch in cyr_to_new:
             chars[i] = cyr_to_new[ch]
 
     res = "".join(chars)
+
+    if all_upper:
+        res = res.upper()
+
     return res
 
 
 def cyrillic_to_latin(text: str) -> str:
-    """Kirill yozuvidan Standart 1995 O'zbek Lotiniga o'giradi."""
+    """Kirill yoki Yangi Lotin yozuvidan Standart 1995 O'zbek Lotiniga o'giradi."""
     if not text:
         return text
 
+    all_upper = is_all_upper(text)
+    res = text
+
+    # Maxsus holat: Is'hoq / Исҳоқ -> Ishoq bo'lib ketmasligi uchun
+    res = res.replace('СҲ', "S'H").replace('Сҳ', "S'h").replace('сҳ', "s'h")
+
+    sh_val = 'SH' if all_upper else 'Sh'
+    ch_val = 'CH' if all_upper else 'Ch'
+    yo_val = 'YO' if all_upper else 'Yo'
+    yu_val = 'YU' if all_upper else 'Yu'
+    ya_val = 'YA' if all_upper else 'Ya'
+    ts_val = 'TS' if all_upper else 'Ts'
+
     cyr_to_lat = {
-        'ш': 'sh', 'Ш': 'Sh',
-        'ч': 'ch', 'Ч': 'Ch',
+        'ш': 'sh', 'Ш': sh_val,
+        'ч': 'ch', 'Ч': ch_val,
         'ў': 'oʻ', 'Ў': 'Oʻ',
         'ғ': 'gʻ', 'Ғ': 'Gʻ',
         'қ': 'q', 'Қ': 'Q',
         'ҳ': 'h', 'Ҳ': 'H',
         'х': 'x', 'Х': 'X',
         'ж': 'j', 'Ж': 'J',
-        'ц': 'ts', 'Ц': 'Ts',
-        'ё': 'yo', 'Ё': 'Yo',
-        'ю': 'yu', 'Ю': 'Yu',
-        'я': 'ya', 'Я': 'Ya',
+        'ц': 'ts', 'Ц': ts_val,
+        'ё': 'yo', 'Ё': yo_val,
+        'ю': 'yu', 'Ю': yu_val,
+        'я': 'ya', 'Я': ya_val,
+        'щ': 'sh', 'Щ': sh_val,
+        'ы': 'i', 'Ы': 'I',
         'э': 'e', 'Э': 'E',
         'а': 'a', 'А': 'A',
         'б': 'b', 'Б': 'B',
@@ -261,24 +272,36 @@ def cyrillic_to_latin(text: str) -> str:
         # Yangi lotin harflaridan qaytarish
         'ö': 'oʻ', 'Ö': 'Oʻ',
         'ğ': 'gʻ', 'Ğ': 'Gʻ',
-        'ş': 'sh', 'Ş': 'Sh',
-        'ç': 'ch', 'Ç': 'Ch',
+        'ş': 'sh', 'Ş': sh_val,
+        'ç': 'ch', 'Ç': ch_val,
     }
 
-    chars = list(text)
+    chars = list(res)
     for i, ch in enumerate(chars):
         if ch in ('е', 'Е'):
             is_cap = (ch == 'Е')
-            if i == 0 or chars[i-1] in ' \t\n\r"\'([{-':
-                chars[i] = 'Ye' if is_cap else 'ye'
-            elif chars[i-1].lower() in VOWELS_CYRILLIC:
-                chars[i] = 'Ye' if is_cap else 'ye'
+            if is_cap and all_upper:
+                ye_val, e_val = 'YE', 'E'
+            elif is_cap:
+                ye_val, e_val = 'Ye', 'E'
             else:
-                chars[i] = 'E' if is_cap else 'e'
+                ye_val, e_val = 'ye', 'e'
+
+            if i == 0 or chars[i-1] in ' \t\n\r"\'([{-':
+                chars[i] = ye_val
+            elif chars[i-1].lower() in VOWELS_CYRILLIC:
+                chars[i] = ye_val
+            else:
+                chars[i] = e_val
         elif ch in cyr_to_lat:
             chars[i] = cyr_to_lat[ch]
 
-    return "".join(chars)
+    res = "".join(chars)
+
+    if all_upper:
+        res = res.upper()
+
+    return res
 
 
 def convert_word(word: str, mode: str) -> str:
@@ -296,24 +319,3 @@ def convert_word(word: str, mode: str) -> str:
     elif mode == 'lotin':
         return cyrillic_to_latin(word)
     return word
-
-
-if __name__ == '__main__':
-    import sys
-    sys.stdout.reconfigure(encoding='utf-8')
-    # Test cases
-    test_words = [
-        "shanba", "Shanba", "SHANBA",
-        "choy", "Choy", "CHOY",
-        "o'zbekiston", "O'zbekiston", "Oʻzbekiston",
-        "bog'", "Bog'", "G'alaba", "g'alaba",
-        "eshik", "keldi", "aeroport",
-        "ma'no", "she'r", "mas'ul", "Is'hoq"
-    ]
-    print("--- KRILGA O'GIRISH TESTLARI ---")
-    for w in test_words:
-        print(f"{w:15} -> {convert_word(w, 'kril')}")
-
-    print("\n--- YANGI LOTINGA O'GIRISH TESTLARI ---")
-    for w in test_words:
-        print(f"{w:15} -> {convert_word(w, 'yangi')}")

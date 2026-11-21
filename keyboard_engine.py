@@ -255,19 +255,14 @@ class KeyboardEngine:
     def _get_char_from_vk_win(self, vk, scan_code):
         shift = bool(user32.GetKeyState(VK_SHIFT) & 0x8000)
         caps = bool(user32.GetKeyState(0x14) & 1)
-        is_upper = shift ^ caps
-
-        if 0x41 <= vk <= 0x5A:
-            return chr(vk) if is_upper else chr(vk + 32)
-        if 0x30 <= vk <= 0x39 and not shift:
-            return chr(vk)
-        if vk == 0xDE and not shift:
-            return "'"
 
         hwnd = user32.GetForegroundWindow()
         tid = user32.GetWindowThreadProcessId(hwnd, None) if hwnd else 0
         hkl = user32.GetKeyboardLayout(tid) if tid else 0
 
+        # Faol klaviatura layoutidan (Rus, O'zbek Kirill, Ingliz, Lotin)
+        # haqiqiy terilayotgan Unicode belgini ToUnicodeEx orqali olamiz.
+        # 0x04 (TOUNICODE_NO_CHANGE_KEY_STATE) dead-key holatini buzmaydi.
         state = (ctypes.c_uint8 * 256)()
         if shift: state[VK_SHIFT] = 0x80
         if caps: state[0x14] = 0x01
@@ -283,6 +278,15 @@ class KeyboardEngine:
 
         if res > 0:
             return buf.value
+
+        # Faqat ToUnicodeEx natija bermasa, zaxira (fallback):
+        is_upper = shift ^ caps
+        if 0x41 <= vk <= 0x5A:
+            return chr(vk) if is_upper else chr(vk + 32)
+        if 0x30 <= vk <= 0x39 and not shift:
+            return chr(vk)
+        if vk == 0xDE and not shift:
+            return "'"
         return ""
 
     def _hook_callback_win(self, nCode, wParam, lParam):

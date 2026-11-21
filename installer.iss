@@ -3,7 +3,7 @@
 ; Raqamli ta'lim texnologiyalari markazi (NamDPI RTTM)
 
 #define MyAppName "NamDPI alifbo"
-#define MyAppVersion "2.0.3"
+#define MyAppVersion "2.0.4"
 #define MyAppPublisher "Namangan davlat pedagogika instituti Raqamli ta'lim texnologiyalari markazi"
 #define MyAppURL "https://nspi.uz"
 #define MyAppExeName "NamDPI_Alifbo.exe"
