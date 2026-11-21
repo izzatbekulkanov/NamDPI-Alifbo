@@ -13,6 +13,8 @@ cmd = [
     "--name=NamDPI_Alifbo",
     "--icon=app_icon.ico",
     "--add-data=app_icon.ico;.",
+    "--version-file=file_version_info.txt",
+    "--manifest=app.manifest",
     "--clean",
     "-y",
     "main.py"

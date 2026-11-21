@@ -17,7 +17,7 @@ import subprocess
 import urllib.request
 import urllib.error
 
-CURRENT_VERSION = "2.0.4"
+CURRENT_VERSION = "2.0.5"
 REPO_OWNER = "izzatbekulkanov"
 REPO_NAME = "NamDPI-Alifbo"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -38,54 +38,6 @@ def parse_version(ver_str):
         parts.append(0)
     return tuple(parts[:3])
 
-def get_github_token():
-    """Tizimdagi yoki git credential helper'dagi GitHub tokenini olish."""
-    # 1. Environment variables
-    for var in ("GITHUB_TOKEN", "GH_TOKEN", "HOMEBREW_GITHUB_API_TOKEN"):
-        val = os.environ.get(var)
-        if val:
-            return val.strip()
-
-    creationflags = subprocess.CREATE_NO_WINDOW if OS_SYSTEM == "Windows" else 0
-
-    # 2. GitHub CLI (gh auth token) - hech qanday dialog chiqarmaydi
-    try:
-        gh_proc = subprocess.run(
-            ["gh", "auth", "token"],
-            capture_output=True,
-            text=True,
-            timeout=1,
-            creationflags=creationflags
-        )
-        if gh_proc.returncode == 0 and gh_proc.stdout.strip():
-            tok = gh_proc.stdout.strip()
-            if tok.startswith(("gho_", "ghp_", "github_pat_")):
-                return tok
-    except Exception:
-        pass
-
-    # 3. Git credential manager (GCM_INTERACTIVE=never orqali oynani qat'iyan taqiqlaymiz)
-    try:
-        custom_env = dict(os.environ, GCM_INTERACTIVE="never", GIT_TERMINAL_PROMPT="0")
-        proc = subprocess.Popen(
-            ["git", "credential", "fill"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env=custom_env,
-            creationflags=creationflags
-        )
-        out, _ = proc.communicate(input="protocol=https\nhost=github.com\n", timeout=2)
-        for line in out.splitlines():
-            if line.startswith("password="):
-                pwd = line.split("=", 1)[1].strip()
-                if pwd.startswith(("gho_", "ghp_", "github_pat_")):
-                    return pwd
-    except Exception:
-        pass
-
-    return None
 
 class UpdateInfo:
     def __init__(self, tag_name, name, body, html_url, assets):
@@ -116,6 +68,7 @@ class UpdateInfo:
         # Fallback: istalgan birinchi fayl
         return self.assets[0] if self.assets else None
 
+
 class UpdateChecker:
     def __init__(self, current_version=CURRENT_VERSION):
         self.current_version = current_version
@@ -125,21 +78,17 @@ class UpdateChecker:
         self._download_cancelled = False
 
     def check_for_updates(self):
-        """GitHub Releases API orqali eng so'nggi versiyani tekshiradi."""
-        token = get_github_token()
+        """GitHub Releases API orqali eng so'nggi versiyani toza va xavfsiz tekshiradi."""
         headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "NamDPI-Alifbo-Updater"
+            "User-Agent": "NamDPI-Alifbo"
         }
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
 
         req = urllib.request.Request(GITHUB_API_URL, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            # Agar unauthenticated 404 bersa va token bo'lmasa, demak repo private yoki hali reliz yo'q
             raise RuntimeError(f"GitHub API javob kodi: {e.code}")
         except Exception as e:
             raise RuntimeError(f"Internet yoki ulanish xatosi: {e}")
@@ -196,18 +145,8 @@ class UpdateChecker:
                 temp_dir = tempfile.gettempdir()
                 dest_path = os.path.join(temp_dir, filename)
 
-                token = get_github_token()
-                headers = {"User-Agent": "NamDPI-Alifbo-Updater"}
-                # Asset download url agar private repo bo'lsa api url kerak bo'lishi mumkin
-                asset_api_url = asset.get("url")
-                if token and asset_api_url:
-                    req_url = asset_api_url
-                    headers["Authorization"] = f"Bearer {token}"
-                    headers["Accept"] = "application/octet-stream"
-                else:
-                    req_url = download_url
-
-                req = urllib.request.Request(req_url, headers=headers)
+                headers = {"User-Agent": "NamDPI-Alifbo"}
+                req = urllib.request.Request(download_url, headers=headers)
                 with urllib.request.urlopen(req, timeout=30) as resp, open(dest_path, "wb") as f_out:
                     total_bytes = int(resp.headers.get("Content-Length") or expected_size or 0)
                     downloaded = 0

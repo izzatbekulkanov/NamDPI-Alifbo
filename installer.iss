@@ -3,7 +3,7 @@
 ; Raqamli ta'lim texnologiyalari markazi (NamDPI RTTM)
 
 #define MyAppName "NamDPI alifbo"
-#define MyAppVersion "2.0.4"
+#define MyAppVersion "2.0.5"
 #define MyAppPublisher "Namangan davlat pedagogika instituti Raqamli ta'lim texnologiyalari markazi"
 #define MyAppURL "https://nspi.uz"
 #define MyAppExeName "NamDPI_Alifbo.exe"
@@ -30,6 +30,16 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 CloseApplications=yes
 CloseApplicationsFilter=NamDPI_Alifbo.exe,NDPI_Alifbo.exe
+
+; Rasmiy Windows VersionInfo (Antiviruslar uchun toza identifikatsiya)
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=NamDPI alifbo o'rnatuvchi dasturi
+VersionInfoVersion=2.0.5.0
+VersionInfoTextVersion=2.0.5
+VersionInfoCopyright=Copyright (C) 2026 Namangan davlat pedagogika instituti
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion=2.0.5.0
+VersionInfoProductTextVersion=2.0.5
 
 [Languages]
 Name: "uzbek"; MessagesFile: "compiler:Default.isl"
